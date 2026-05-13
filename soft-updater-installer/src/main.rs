@@ -72,9 +72,7 @@ fn extract_zip(archive: &Path, target: &Path) -> io::Result<()> {
             let mut out_file = File::create(&out_path)?;
             io::copy(&mut entry, &mut out_file)?;
 
-            // Linux: восстанавливаем права исполнения если были в архиве
-            #[cfg(unix)]
-            set_permissions(&out_path, &entry);
+
         }
     }
 
@@ -86,12 +84,4 @@ fn strip_top_component(name: &str) -> PathBuf {
     let mut components = Path::new(name).components();
     components.next(); // пропускаем первый
     components.as_path().to_path_buf()
-}
-
-#[cfg(unix)]
-fn set_permissions(path: &Path, entry: &zip::ZipFile<impl std::io::Read>) {
-    use std::os::unix::fs::PermissionsExt;
-    if let Some(mode) = entry.unix_mode() {
-        let _ = fs::set_permissions(path, fs::Permissions::from_mode(mode));
-    }
 }
