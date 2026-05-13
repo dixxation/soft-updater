@@ -89,7 +89,7 @@ fn strip_top_component(name: &str) -> PathBuf {
 }
 
 #[cfg(unix)]
-fn set_permissions(path: &Path, entry: &zip::ZipFile) {
+fn set_permissions(path: &Path, entry: &zip::ZipFile<impl std::io::Read>) {
     use std::os::unix::fs::PermissionsExt;
     if let Some(mode) = entry.unix_mode() {
         let _ = fs::set_permissions(path, fs::Permissions::from_mode(mode));
