@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace soft_updater_lib.Installer;
@@ -7,13 +8,9 @@ internal static class InstallerRunner
 {
     private const string InstallerName = "soft-updater-installer";
 
-    /// <summary>
-    /// Находит инсталлер рядом с exe, запускает его и завершает текущий процесс.
-    /// Инсталлер сам дождётся смерти PID, распакует архив и перезапустит приложение.
-    /// </summary>
     public static void LaunchAndExit(string archivePath, string targetDirectory)
     {
-        var installerPath = FindInstaller();
+        var installerPath = ExtractInstaller();
 
         var currentExe = Process.GetCurrentProcess().MainModule?.FileName
             ?? throw new InvalidOperationException("Cannot determine current executable path");
@@ -38,40 +35,51 @@ internal static class InstallerRunner
         _ = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start installer process");
 
-        // Завершаем себя — инсталлер возьмёт управление
         Environment.Exit(0);
     }
 
-    private static string FindInstaller()
+    /// <summary>
+    /// Извлекает инсталлер из EmbeddedResource во временную папку.
+    /// Если файл там уже есть и не устарел — переиспользует его.
+    /// </summary>
+    private static string ExtractInstaller()
     {
-        var baseDir   = AppContext.BaseDirectory;
-        var fileName  = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? $"{InstallerName}.exe"
-            : InstallerName;
+        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        var fileName  = isWindows ? $"{InstallerName}.exe" : InstallerName;
 
-        var path = Path.Combine(baseDir, fileName);
+        // Кладём рядом с exe приложения — туда у нас точно есть доступ на запись
+        var destPath = Path.Combine(AppContext.BaseDirectory, fileName);
 
-        if (!File.Exists(path))
+        var resourceName = isWindows
+            ? $"soft_updater_lib.Resources.{InstallerName}.exe"
+            : $"soft_updater_lib.Resources.{InstallerName}";
+
+        var assembly = Assembly.GetExecutingAssembly();
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+
+        if (stream is null)
+        {
+            // Embedded resource не найден — fallback на файл рядом с exe (dev окружение)
+            if (File.Exists(destPath))
+                return destPath;
+
             throw new FileNotFoundException(
-                $"Installer not found at '{path}'. " +
-                $"Make sure '{fileName}' is placed next to the application executable.",
-                path);
+                $"Installer resource '{resourceName}' not found in assembly. " +
+                $"In development, place '{fileName}' next to the executable.",
+                destPath);
+        }
 
-        // Linux: убедимся что файл исполняемый
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            SetExecutable(path);
+        // Перезаписываем каждый раз — гарантирует актуальную версию инсталлера
+        using var dest = File.Create(destPath);
+        stream.CopyTo(dest);
 
-        return path;
-    }
+        if (!isWindows)
+            File.SetUnixFileMode(destPath,
+                UnixFileMode.UserExecute  | UnixFileMode.UserRead  | UnixFileMode.UserWrite |
+                UnixFileMode.GroupExecute | UnixFileMode.GroupRead |
+                UnixFileMode.OtherExecute | UnixFileMode.OtherRead);
 
-    private static void SetExecutable(string path)
-    {
-        // chmod +x через встроенный Unix API
-        var mode = File.GetUnixFileMode(path);
-        File.SetUnixFileMode(path, mode
-            | UnixFileMode.UserExecute
-            | UnixFileMode.GroupExecute
-            | UnixFileMode.OtherExecute);
+        return destPath;
     }
 
     private static string Quote(string s) => $"\"{s}\"";
