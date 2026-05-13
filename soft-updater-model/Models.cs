@@ -20,6 +20,13 @@ public record HealthStatus(
     DateTime Timestamp,
     GitLabHealth GitLab
 );
+
+public record PagedResult<T>(
+    List<T> Items,
+    int Page,
+    int PageSize,
+    bool HasMore
+);
  
 public record GitLabHealth(
     bool Reachable,

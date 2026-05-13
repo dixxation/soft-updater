@@ -71,6 +71,29 @@ public static class UpdatesEndpoints
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status404NotFound);
  
+        // GET /api/updates/versions?page=1&pageSize=10
+        group.MapGet("/versions", async (
+                HttpContext ctx,
+                GitLabService svc,
+                ApiKeyService keys,
+                int page     = 1,
+                int pageSize = 10) =>
+            {
+                var projectId = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
+                if (projectId is null)
+                    return Results.Unauthorized();
+ 
+                page     = Math.Max(1, page);
+                pageSize = Math.Clamp(pageSize, 1, 50);
+ 
+                var result = await svc.GetReleasesPagedAsync(projectId.Value, page, pageSize);
+                return Results.Ok(result);
+            })
+            .WithName("GetVersions")
+            .WithSummary("Список всех версий с пагинацией")
+            .Produces<PagedResult<UpdateInfo>>()
+            .Produces(StatusCodes.Status401Unauthorized);
+ 
         return routes;
     }
 }

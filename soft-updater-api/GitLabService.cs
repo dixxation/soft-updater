@@ -89,7 +89,7 @@ public class GitLabService(HttpClient http, GitLabSettings settings, ILogger<Git
     {
         var release = await FetchReleaseByTagAsync(projectId, version);
  
-        // Приоритет: assets.links (прикреплённый билд) → assets.sources (исходники GitLab)
+        // Приоритет: assets.links (прикреплённый build) → assets.sources (исходники GitLab)
         var downloadUrl =
             release?.Assets?.Links?.FirstOrDefault()?.DirectAssetUrl
             ?? release?.Assets?.Sources?.FirstOrDefault(s => s.Format.Equals("zip", StringComparison.OrdinalIgnoreCase))?.Url;
@@ -170,6 +170,29 @@ public class GitLabService(HttpClient http, GitLabSettings settings, ILogger<Git
         if (!Version.TryParse(incoming.TrimStart('v'), out var a)) return false;
         if (!Version.TryParse(current.TrimStart('v'),  out var b)) return false;
         return a > b;
+    }
+
+    public async Task<PagedResult<UpdateInfo>> GetReleasesPagedAsync(int projectId, int page, int pageSize)
+    {
+        // Запрашиваем на 1 больше, чтобы определить hasMore без лишнего запроса
+        var url = $"{settings.ApiUrl}/projects/{projectId}/releases?page={page}&per_page={pageSize + 1}";
+        try
+        {
+            var response = await http.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync();
+            var releases = JsonSerializer.Deserialize<List<GitLabRelease>>(json, Json) ?? [];
+ 
+            var hasMore = releases.Count > pageSize;
+            var items   = releases.Take(pageSize).Select(r => MapToUpdateInfo(projectId, r)).ToList();
+ 
+            return new PagedResult<UpdateInfo>(items, page, pageSize, hasMore);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to fetch paged releases for project {ProjectId}", projectId);
+            return new PagedResult<UpdateInfo>([], page, pageSize, false);
+        }
     }
 }
  

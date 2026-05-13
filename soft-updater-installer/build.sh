@@ -2,7 +2,7 @@
 # Билдит бинарники для Windows и Linux, кладёт в ../SoftUpdater.Lib/Resources/
 set -e
 
-OUT="../../SoftUpdaterLib/Resources"
+OUT="../../soft-updater-lib/Resources"
 mkdir -p "$OUT"
 
 echo "==> Building Windows x64..."
