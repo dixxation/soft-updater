@@ -8,9 +8,9 @@ on:
 env:
   DOTNET_VERSION: '8.0.x'
   RUST_VERSION: stable
-  LIB_PROJECT: SoftUpdaterLib/SoftUpdater.Lib.csproj
+  LIB_PROJECT: soft-updater-lib/soft-updater-lib.csproj
   INSTALLER_DIR: soft-updater-installer
-  RESOURCES_DIR: SoftUpdaterLib/Resources
+  RESOURCES_DIR: soft-updater-lib/Resources
 
 jobs:
   # ── 1. Билд Rust инсталлера под оба таргета ────────────────────────────────
