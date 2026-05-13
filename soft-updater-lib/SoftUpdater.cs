@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using soft_updater_lib.Installer;
 using soft_updater_lib.Services;
-using soft_updater_model;
+
 
 namespace soft_updater_lib;
 
@@ -50,6 +50,12 @@ public sealed class SoftUpdater : IAsyncDisposable
         _logger.LogInformation("SoftUpdater started. Current version: {Version}", _currentVersion);
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Список всех версий с пагинацией.
+    /// </summary>
+    public Task<PagedResult<UpdateInfo>> GetVersionsAsync(int page = 1, int pageSize = 10, CancellationToken ct = default)
+        => _client.GetVersionsAsync(page, pageSize, ct);
 
     /// <summary>
     /// Разовая проверка обновления без запуска фонового цикла.

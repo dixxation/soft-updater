@@ -21,10 +21,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\soft-updater-model\soft-updater-model.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <EmbeddedResource Include="Resources\soft-updater-installer.exe"
                           Condition="Exists('Resources\soft-updater-installer.exe')"/>
         <EmbeddedResource Include="Resources\soft-updater-installer"

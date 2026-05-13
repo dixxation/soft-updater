@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using soft_updater_model;
+
 
 namespace soft_updater_lib.Services;
 
@@ -90,6 +90,18 @@ internal class UpdaterClient : IDisposable
             if (total > 0)
                 progress?.Report((double)read / total * 100);
         }
+    }
+
+    /// <summary>
+    /// Возвращает пагинированный список версий приложения.
+    /// </summary>
+    public async Task<PagedResult<UpdateInfo>> GetVersionsAsync(int page = 1, int pageSize = 10, CancellationToken ct = default)
+    {
+        var url = $"{_baseUrl}/api/updates/versions?page={page}&pageSize={pageSize}";
+        var response = await _http.GetAsync(url, ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<PagedResult<UpdateInfo>>(Json, ct)
+               ?? new PagedResult<UpdateInfo>([], page, pageSize, false);
     }
 
     public void Dispose() => _http.Dispose();

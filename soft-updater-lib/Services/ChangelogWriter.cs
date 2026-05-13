@@ -1,6 +1,4 @@
-﻿using soft_updater_model;
-
-namespace soft_updater_lib.Services;
+﻿namespace soft_updater_lib.Services;
 
 internal static class ChangelogWriter
 {

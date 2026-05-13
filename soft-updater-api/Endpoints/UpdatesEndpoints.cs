@@ -1,6 +1,4 @@
-﻿using soft_updater_model;
-
-namespace soft_updater_api.Endpoints;
+﻿namespace soft_updater_api.Endpoints;
 
 public static class UpdatesEndpoints
 {

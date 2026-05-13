@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using soft_updater_model;
 
 namespace soft_updater_api;
 

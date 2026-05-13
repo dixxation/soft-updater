@@ -1,6 +1,6 @@
-﻿// ReSharper disable NotAccessedPositionalProperty.Global
-namespace soft_updater_model;
-
+// ReSharper disable NotAccessedPositionalProperty.Global
+namespace soft_updater_api;
+ 
 public record UpdateInfo(
     string Version,
     string ChangelogMarkdown,
