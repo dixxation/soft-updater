@@ -89,17 +89,12 @@ jobs:
         run: mkdir -p ${{ env.RESOURCES_DIR }}
 
       # Скачиваем оба бинарника из предыдущего джоба
-      - name: Download win installer
+      - name: Download installers
         uses: actions/download-artifact@v4
         with:
-          name: soft-updater-installer-win-x64.exe
+          pattern: soft-updater-installer-*
           path: ${{ env.RESOURCES_DIR }}
-
-      - name: Download linux installer
-        uses: actions/download-artifact@v4
-        with:
-          name: soft-updater-installer-linux-x64
-          path: ${{ env.RESOURCES_DIR }}
+          merge-multiple: true
 
       - name: Make linux installer executable
         run: chmod +x ${{ env.RESOURCES_DIR }}/soft-updater-installer-linux-x64
