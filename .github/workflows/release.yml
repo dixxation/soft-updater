@@ -77,6 +77,10 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      # Создаём папку для бинарников
+      - name: Create Resources directory
+        run: mkdir -p ${{ env.RESOURCES_DIR }}
+        
       # Скачиваем оба бинарника из предыдущего джоба
       - name: Download win installer
         uses: actions/download-artifact@v4
