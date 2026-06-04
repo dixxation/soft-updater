@@ -1,30 +1,43 @@
 use std::thread;
 use std::time::{Duration, Instant};
 
-pub fn wait_for_pid(pid: u32, timeout: Duration) {
+/// Чем закончилось ожидание хост-процесса.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum WaitOutcome {
+    /// Процесс завершился сам — штатный случай.
+    Exited,
+    /// Не дождались за таймаут, поэтому убили силой.
+    TimedOutKilled,
+}
+
+/// Ждёт, пока процесс `pid` завершится, но не дольше `timeout`.
+/// Если не дождались — убивает его и возвращает `TimedOutKilled`.
+pub fn wait_for_pid(pid: u32, timeout: Duration) -> WaitOutcome {
     let deadline = Instant::now() + timeout;
 
     loop {
         if !is_running(pid) {
-            return;
+            return WaitOutcome::Exited;
         }
         if Instant::now() >= deadline {
-            eprintln!("[installer] timeout waiting for pid {pid}, killing...");
             kill(pid);
+            // Дать ОС время реально снять процесс, чтобы файлы освободились.
             thread::sleep(Duration::from_millis(500));
-            return;
+            return WaitOutcome::TimedOutKilled;
         }
-        thread::sleep(Duration::from_millis(200));
+        thread::sleep(Duration::from_millis(100));
     }
 }
 
+// ── Платформенные реализации ──────────────────────────────────────────────
+
 #[cfg(target_os = "windows")]
-fn is_running(pid: u32) -> bool {
+pub fn is_running(pid: u32) -> bool {
     use std::ptr::null_mut;
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::{OpenProcess, WaitForSingleObject};
 
-    const SYNCHRONIZE: u32 = 0x00100000;
+    const SYNCHRONIZE: u32 = 0x0010_0000;
 
     unsafe {
         let handle = OpenProcess(SYNCHRONIZE, 0, pid);
@@ -38,7 +51,7 @@ fn is_running(pid: u32) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn kill(pid: u32) {
+pub fn kill(pid: u32) {
     use std::ptr::null_mut;
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
@@ -53,12 +66,13 @@ fn kill(pid: u32) {
 }
 
 #[cfg(unix)]
-fn is_running(pid: u32) -> bool {
+pub fn is_running(pid: u32) -> bool {
+    // kill(pid, 0) ничего не отправляет, только проверяет, что процесс есть.
     unsafe { libc::kill(pid as libc::pid_t, 0) == 0 }
 }
 
 #[cfg(unix)]
-fn kill(pid: u32) {
+pub fn kill(pid: u32) {
     unsafe {
         libc::kill(pid as libc::pid_t, libc::SIGKILL);
     }

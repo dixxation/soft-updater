@@ -3,6 +3,10 @@ name = "soft-updater-installer"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "soft_updater_installer"
+path = "src/lib.rs"
+
 [[bin]]
 name = "soft-updater-installer"
 path = "src/main.rs"
