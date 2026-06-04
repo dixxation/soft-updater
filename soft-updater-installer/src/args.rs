@@ -24,6 +24,8 @@ pub struct Args {
     pub wait_pid: u32,
     /// Сколько ждать смерти хоста, прежде чем убить его силой.
     pub wait_timeout: Duration,
+    /// Куда писать лог. Если None — рядом с целевой папкой.
+    pub log: Option<PathBuf>,
 }
 
 /// Таймаут ожидания хоста по умолчанию.
@@ -41,6 +43,7 @@ impl Args {
         let mut restart: Option<PathBuf> = None;
         let mut wait_pid: Option<u32> = None;
         let mut wait_timeout_secs: u64 = DEFAULT_WAIT_TIMEOUT_SECS;
+        let mut log: Option<PathBuf> = None;
 
         let mut i = 1; // argv[0] — это путь к самому бинарю, пропускаем
         while i < argv.len() {
@@ -79,6 +82,10 @@ impl Args {
                         .map_err(|_| format!("invalid --wait-timeout-secs: `{raw}`"))?;
                     i += 2;
                 }
+                "--log" => {
+                    log = Some(PathBuf::from(value()?));
+                    i += 2;
+                }
                 other => return Err(format!("unknown argument: `{other}`")),
             }
         }
@@ -89,6 +96,7 @@ impl Args {
             restart: restart.ok_or("--restart is required")?,
             wait_pid: wait_pid.ok_or("--wait-pid is required")?,
             wait_timeout: Duration::from_secs(wait_timeout_secs),
+            log,
         })
     }
 }

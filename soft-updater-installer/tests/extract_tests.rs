@@ -6,6 +6,7 @@ use std::io::Write;
 use std::path::Path;
 
 use soft_updater_installer::extract::extract_zip;
+use soft_updater_installer::log::Logger;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
@@ -46,7 +47,7 @@ fn extracts_root_layout_flat_and_nested() {
         ],
     );
 
-    let stats = extract_zip(&archive, &target).unwrap();
+    let stats = extract_zip(&archive, &target, &mut Logger::silent()).unwrap();
 
     assert_eq!(stats.files, 2);
     assert_eq!(fs::read(target.join("MyApp.exe")).unwrap(), b"binary-v2");
@@ -67,7 +68,7 @@ fn overwrites_existing_file() {
     fs::write(target.join("MyApp.exe"), b"binary-v1-OLD").unwrap();
 
     make_zip(&archive, &[("MyApp.exe", b"binary-v2-NEW")]);
-    extract_zip(&archive, &target).unwrap();
+    extract_zip(&archive, &target, &mut Logger::silent()).unwrap();
 
     assert_eq!(
         fs::read(target.join("MyApp.exe")).unwrap(),
@@ -86,7 +87,7 @@ fn rejects_zip_slip() {
     // Вредный архив пытается записать файл ВЫШЕ целевой папки.
     make_zip(&archive, &[("../escaped.txt", b"pwned")]);
 
-    let result = extract_zip(&archive, &target);
+    let result = extract_zip(&archive, &target, &mut Logger::silent());
 
     assert!(result.is_err(), "распаковка должна упасть на опасном пути");
     assert!(
