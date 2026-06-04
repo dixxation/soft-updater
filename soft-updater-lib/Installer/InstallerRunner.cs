@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace soft_updater_lib.Installer;
 
@@ -82,5 +83,45 @@ internal static class InstallerRunner
         return destPath;
     }
 
-    private static string Quote(string s) => $"\"{s}\"";
+    /// <summary>
+    /// Заворачивает аргумент в кавычки по правилам командной строки Windows:
+    /// удваивает обратные слэши перед закрывающей кавычкой и экранирует
+    /// внутренние кавычки. Именно отсутствие этого ломало запуск из кода —
+    /// путь, оканчивающийся на '\', давал на выходе  ...\"  и съедал кавычку.
+    /// </summary>
+    private static string Quote(string s)
+    {
+        var sb = new StringBuilder();
+        sb.Append('"');
+
+        var slashes = 0;
+        foreach (var c in s)
+        {
+            if (c == '\\')
+            {
+                slashes++;
+                continue;
+            }
+
+            if (c == '"')
+            {
+                sb.Append('\\', slashes * 2 + 1); // экранируем накопленные слэши + саму кавычку
+                sb.Append('"');
+                slashes = 0;
+                continue;
+            }
+
+            if (slashes > 0)
+            {
+                sb.Append('\\', slashes);
+                slashes = 0;
+            }
+
+            sb.Append(c);
+        }
+
+        sb.Append('\\', slashes * 2); // хвостовые слэши перед закрывающей кавычкой — удвоить
+        sb.Append('"');
+        return sb.ToString();
+    }
 }
