@@ -1,5 +1,9 @@
 ﻿# SoftUpdater
 
+
+[![NuGet](https://img.shields.io/nuget/v/soft_updater_lib.svg)](https://www.nuget.org/packages/soft_updater_lib)
+[![Latest release](https://img.shields.io/github/v/release/dixxation/soft-updater.svg)](https://github.com/dixxation/soft-updater/releases)
+
 Система автообновления десктопного ПО через приватный GitLab.
 
 Состоит из трёх частей:
