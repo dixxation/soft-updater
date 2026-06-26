@@ -1,10 +1,11 @@
 ﻿services:
   update-service:
-    build: ./soft-updater-api/Dockerfile
+    build: ./soft-updater-api/
     ports:
-      - "5000:5000"
+      - "5444:5444"
     environment:
       - GitLab__ApiUrl=https://your-gitlab.com/api/v4
+      - GitLab__IgnoreSslErrors=true
       - GitLab__Token=${GITLAB_TOKEN}
       - GitLab__Projects__MyDesktopApp=123
       - GitLab__Projects__AnotherApp=456

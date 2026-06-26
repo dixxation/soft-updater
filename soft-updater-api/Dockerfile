@@ -12,9 +12,7 @@ WORKDIR /app
 
 COPY --from=build /app .
 
-ENV ASPNETCORE_HTTP_PORTS=5000
-ENV GitLab__Token=""
+ENV ASPNETCORE_HTTP_PORTS=5444
+EXPOSE 5444
 
-EXPOSE 5000
-
-ENTRYPOINT ["dotnet", "UpdateService.dll"]
+ENTRYPOINT ["dotnet", "soft-updater-api.dll"]

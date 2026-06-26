@@ -56,16 +56,18 @@ public static class UpdatesEndpoints
                 var projectId = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
                 if (projectId is null)
                     return Results.Unauthorized();
- 
-                var stream = await svc.GetArchiveStreamAsync(projectId.Value, version);
-                if (stream is null)
-                    return Results.NotFound(new { error = $"Release {version} not found" });
- 
-                return Results.Stream(stream, "application/zip", $"release-{version}.zip");
+
+                // Проверяем ключ, затем отдаём 302 на прямой адрес артефакта (MinIO):
+                // клиент качает напрямую, апи не проксирует байты, а Content-Length (нужный
+                // для прогресса) приходит клиенту прямо из хранилища.
+                var url = await svc.GetDownloadUrlAsync(projectId.Value, version);
+                return url is null
+                    ? Results.NotFound(new { error = $"Release {version} not found" })
+                    : Results.Redirect(url);
             })
             .WithName("DownloadRelease")
-            .WithSummary("Скачать архив релиза")
-            .Produces(StatusCodes.Status200OK)
+            .WithSummary("Скачать архив релиза (редирект на хранилище)")
+            .Produces(StatusCodes.Status302Found)
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status404NotFound);
  

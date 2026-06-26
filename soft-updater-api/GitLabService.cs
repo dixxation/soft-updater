@@ -84,21 +84,16 @@ public class GitLabService(HttpClient http, GitLabSettings settings, ILogger<Git
         }
     }
  
-    public async Task<Stream?> GetArchiveStreamAsync(int projectId, string version)
+    public async Task<string?> GetDownloadUrlAsync(int projectId, string version)
     {
         var release = await FetchReleaseByTagAsync(projectId, version);
- 
-        // Приоритет: assets.links (прикреплённый build) → assets.sources (исходники GitLab)
-        var downloadUrl =
-            release?.Assets?.Links?.FirstOrDefault()?.DirectAssetUrl
+
+        // Приоритет: внешняя ссылка на прикреплённый build → исходники GitLab.
+        // Берём сырой Url (прямой адрес MinIO), а НЕ DirectAssetUrl: тот — редирект-пермалинк
+        // GitLab, на который клиент тоже должен был бы иметь доступ. Клиент качает архив сам
+        // (эндпоинт отдаёт 302 на эту ссылку), поэтому поток через апи больше не гоним.
+        return release?.Assets?.Links?.FirstOrDefault()?.Url
             ?? release?.Assets?.Sources?.FirstOrDefault(s => s.Format.Equals("zip", StringComparison.OrdinalIgnoreCase))?.Url;
- 
-        if (downloadUrl is null) return null;
- 
-        var response = await http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
-        response.EnsureSuccessStatusCode();
- 
-        return await response.Content.ReadAsStreamAsync();
     }
  
     // GET /projects/:id/releases/permalink/latest
