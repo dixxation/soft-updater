@@ -10,6 +10,8 @@ public record UpdateInfo(
  
 public record AppStatus(
     int     ProjectId,
+    // Маска файла релиза, если приложение — один из нескольких вариантов в проекте
+    string? Asset,
     string? LatestVersion,
     DateTime? PublishedAt,
     bool Available

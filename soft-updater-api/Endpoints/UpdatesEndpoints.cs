@@ -13,11 +13,11 @@ public static class UpdatesEndpoints
                 GitLabService svc,
                 ApiKeyService keys) =>
             {
-                var projectId = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
-                if (projectId is null)
+                var app = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
+                if (app is null)
                     return Results.Unauthorized();
  
-                var update = await svc.GetLatestAsync(projectId.Value, currentVersion);
+                var update = await svc.GetLatestAsync(app, currentVersion);
                 return update is null ? Results.NoContent() : Results.Ok(update);
             })
             .WithName("GetLatest")
@@ -34,11 +34,11 @@ public static class UpdatesEndpoints
                 GitLabService svc,
                 ApiKeyService keys) =>
             {
-                var projectId = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
-                if (projectId is null)
+                var app = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
+                if (app is null)
                     return Results.Unauthorized();
  
-                var changelog = await svc.GetChangelogAsync(projectId.Value, from);
+                var changelog = await svc.GetChangelogAsync(app, from);
                 return Results.Ok(changelog);
             })
             .WithName("GetChangelog")
@@ -53,14 +53,14 @@ public static class UpdatesEndpoints
                 GitLabService svc,
                 ApiKeyService keys) =>
             {
-                var projectId = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
-                if (projectId is null)
+                var app = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
+                if (app is null)
                     return Results.Unauthorized();
 
                 // Проверяем ключ, затем отдаём 302 на прямой адрес артефакта (MinIO):
                 // клиент качает напрямую, апи не проксирует байты, а Content-Length (нужный
                 // для прогресса) приходит клиенту прямо из хранилища.
-                var url = await svc.GetDownloadUrlAsync(projectId.Value, version);
+                var url = await svc.GetDownloadUrlAsync(app, version);
                 return url is null
                     ? Results.NotFound(new { error = $"Release {version} not found" })
                     : Results.Redirect(url);
@@ -79,14 +79,14 @@ public static class UpdatesEndpoints
                 int page     = 1,
                 int pageSize = 10) =>
             {
-                var projectId = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
-                if (projectId is null)
+                var app = keys.Resolve(ctx.Request.Headers[ApiKeyService.Header]);
+                if (app is null)
                     return Results.Unauthorized();
  
                 page     = Math.Max(1, page);
                 pageSize = Math.Clamp(pageSize, 1, 50);
  
-                var result = await svc.GetReleasesPagedAsync(projectId.Value, page, pageSize);
+                var result = await svc.GetReleasesPagedAsync(app, page, pageSize);
                 return Results.Ok(result);
             })
             .WithName("GetVersions")

@@ -17,9 +17,47 @@ var gitLabSettings = new GitLabSettings
 var apiKeySettings = new ApiKeySettings
 {
     MasterKey = builder.Configuration["Auth:MasterKey"] ?? throw new InvalidOperationException("Auth:MasterKey is required"),
-    Keys      = builder.Configuration.GetSection("Auth:Keys").Get<Dictionary<string, int>>()
-                ?? throw new InvalidOperationException("Auth:Keys is required"),
+    Keys      = ReadKeys(builder.Configuration.GetSection("Auth:Keys")),
 };
+
+// Значение ключа — либо число (id проекта), либо объект { projectId, asset }.
+// Второй формат нужен, когда из одного проекта выходит несколько сборок одной версии:
+// маска указывает, какой файл релиза принадлежит этому приложению.
+static Dictionary<string, AppTarget> ReadKeys(IConfigurationSection section)
+{
+    if (!section.Exists())
+        throw new InvalidOperationException("Auth:Keys is required");
+
+    var result = new Dictionary<string, AppTarget>();
+
+    foreach (var child in section.GetChildren())
+    {
+        // Скалярная запись: "ключ": 123
+        if (child.Value is not null)
+        {
+            if (!int.TryParse(child.Value, out var id))
+                throw new InvalidOperationException(
+                    $"Auth:Keys:{child.Key} — ожидалось число или объект {{ projectId, asset }}");
+
+            result[child.Key] = new AppTarget(id, null);
+            continue;
+        }
+
+        // Объектная запись: "ключ": { "projectId": 123, "asset": "*-main.zip" }
+        var projectId = child["projectId"]
+                        ?? throw new InvalidOperationException($"Auth:Keys:{child.Key}:projectId is required");
+
+        if (!int.TryParse(projectId, out var parsed))
+            throw new InvalidOperationException($"Auth:Keys:{child.Key}:projectId — ожидалось число");
+
+        result[child.Key] = new AppTarget(parsed, child["asset"]);
+    }
+
+    if (result.Count == 0)
+        throw new InvalidOperationException("Auth:Keys is required");
+
+    return result;
+}
 
 builder.Services.AddSingleton(gitLabSettings);
 builder.Services.AddSingleton(apiKeySettings);
@@ -45,7 +83,12 @@ builder.Services.AddHttpClient<GitLabService>(client =>
 // ── Infrastructure ─────────────────────────────────────────────────────────
 builder.Services.AddOutputCache(o =>
 {
-    o.AddPolicy("versions", p => p.Expire(TimeSpan.FromMinutes(5)));
+    // Ответ зависит от ключа: он определяет и проект, и вариант сборки. Без VaryByHeader
+    // закэшированный ответ одного приложения уходил всем остальным — включая тех, кто
+    // вообще не предъявил ключ (кэш срабатывает до эндпоинта, то есть до проверки доступа).
+    o.AddPolicy("versions", p => p
+        .Expire(TimeSpan.FromMinutes(5))
+        .SetVaryByHeader(ApiKeyService.Header));
 });
 
 builder.Services.AddEndpointsApiExplorer();

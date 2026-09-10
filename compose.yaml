@@ -7,6 +7,12 @@
       - GitLab__ApiUrl=https://your-gitlab.com/api/v4
       - GitLab__IgnoreSslErrors=true
       - GitLab__Token=${GITLAB_TOKEN}
-      - GitLab__Projects__MyDesktopApp=123
-      - GitLab__Projects__AnotherApp=456
+      - Auth__MasterKey=${MASTER_KEY}
+      # Ключ приложения → id проекта в GitLab
+      - Auth__Keys__my-desktop-app=123
+      # Несколько сборок одной версии в одном проекте: маска выбирает файл релиза
+      - Auth__Keys__another-app__projectId=456
+      - Auth__Keys__another-app__asset=*-main.zip
+      - Auth__Keys__another-app-lite__projectId=456
+      - Auth__Keys__another-app-lite__asset=*-lite.zip
     restart: unless-stopped
