@@ -15,7 +15,7 @@ public static class AppsEndpoints
                 if (!keys.IsMaster(ctx.Request.Headers[ApiKeyService.Header]))
                     return Results.Unauthorized();
  
-                var tasks = keys.AllProjectIds().Select(id => svc.GetAppStatusAsync(id));
+                var tasks = keys.AllTargets().Select(app => svc.GetAppStatusAsync(app));
                 var results = await Task.WhenAll(tasks);
                 return Results.Ok(results);
             })
